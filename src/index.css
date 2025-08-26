@@ -118,3 +118,30 @@
     @apply bg-background text-foreground;
   }
 }
+.gutter {
+  background-color: #1d3356 !important;
+  width: 4px !important; /* widened a bit for arrow */
+  cursor: col-resize !important;
+  border-radius: 1px;
+  position: relative; /* needed for arrow positioning */
+}
+
+.gutter:hover {
+  background-color: #3cd20e !important;
+}
+
+.gutter.gutter-horizontal {
+  cursor: col-resize !important;
+}
+
+/* Add arrow */
+.gutter.gutter-horizontal::before {
+  content: "⇔"; /* double-headed arrow */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: white;
+  pointer-events: none; /* so dragging still works */
+}
