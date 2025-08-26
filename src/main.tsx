@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Grid from "./components/Grid.tsx";
+import Tree from "./components/Tree.tsx";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
@@ -13,6 +14,7 @@ createRoot(document.getElementById("root")!).render(
 
         {/* Graph Visualizer */}
         <Route path="/graph" element={<Grid />} />
+        <Route path="/tree" element={<Tree />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

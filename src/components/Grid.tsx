@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Moon, Sun, Plus, Trash2, Save, FolderOpen } from "lucide-react";
+import { Plus, Trash2, Save, FolderOpen } from "lucide-react";
 
 // Graph node type
 interface Node {
@@ -80,6 +80,11 @@ export default function GraphTraversal() {
     y: number;
   } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  const [dataStructureState, setDataStructureState] = useState<string[]>([]);
+  const [dataStructureType, setDataStructureType] = useState<
+    "stack" | "queue" | null
+  >(null);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -242,8 +247,8 @@ export default function GraphTraversal() {
     const mouseY = e.clientY - rect.top;
 
     if (draggedNode) {
-      const newX = Math.max(20, Math.min(380, mouseX - dragOffset.x));
-      const newY = Math.max(20, Math.min(380, mouseY - dragOffset.y));
+      const newX = Math.max(30, Math.min(570, mouseX - dragOffset.x));
+      const newY = Math.max(30, Math.min(370, mouseY - dragOffset.y));
 
       setCurrentGraph((prev) =>
         prev.map((node) =>
@@ -292,19 +297,32 @@ export default function GraphTraversal() {
     setIsTraversing(false);
     setTraversalOrder([]);
     setCurrentAlgorithm(null);
+    setDataStructureState([]);
+    setDataStructureType(null);
   }, [currentGraph]);
+
+  const stopTraversal = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsTraversing(false);
+    setDataStructureState([]);
+    setDataStructureType(null);
+  }, []);
 
   // BFS implementation with visualization
   const runBFS = useCallback(async () => {
     resetGraph();
     setIsTraversing(true);
     setCurrentAlgorithm("BFS");
+    setDataStructureType("queue");
 
     const queue: string[] = [startNode];
     const visited = new Set<string>();
     const order: string[] = [];
 
-    // Helper function to update node state with delay
+    setDataStructureState([...queue]);
+
     const updateNodeState = (nodeId: string, state: NodeState) => {
       return new Promise<void>((resolve) => {
         setNodeStates((prev) => ({ ...prev, [nodeId]: state }));
@@ -314,30 +332,31 @@ export default function GraphTraversal() {
 
     while (queue.length > 0) {
       const current = queue.shift()!;
+      setDataStructureState([...queue]);
 
       if (visited.has(current)) continue;
 
-      // Mark as current
       await updateNodeState(current, "current");
 
-      // Mark as visited
       visited.add(current);
       order.push(current);
       setTraversalOrder([...order]);
 
       await updateNodeState(current, "visited");
 
-      // Add neighbors to queue
       const node = currentGraph.find((n) => n.id === current)!;
       for (const neighbor of node.neighbors) {
         if (!visited.has(neighbor) && !queue.includes(neighbor)) {
           queue.push(neighbor);
+          setDataStructureState([...queue]);
           await updateNodeState(neighbor, "visiting");
         }
       }
     }
 
     setIsTraversing(false);
+    setDataStructureState([]);
+    setDataStructureType(null);
   }, [startNode, resetGraph, currentGraph]);
 
   // DFS implementation with visualization
@@ -345,12 +364,14 @@ export default function GraphTraversal() {
     resetGraph();
     setIsTraversing(true);
     setCurrentAlgorithm("DFS");
+    setDataStructureType("stack");
 
     const stack: string[] = [startNode];
     const visited = new Set<string>();
     const order: string[] = [];
 
-    // Helper function to update node state with delay
+    setDataStructureState([...stack]);
+
     const updateNodeState = (nodeId: string, state: NodeState) => {
       return new Promise<void>((resolve) => {
         setNodeStates((prev) => ({ ...prev, [nodeId]: state }));
@@ -360,20 +381,18 @@ export default function GraphTraversal() {
 
     while (stack.length > 0) {
       const current = stack.pop()!;
+      setDataStructureState([...stack]);
 
       if (visited.has(current)) continue;
 
-      // Mark as current
       await updateNodeState(current, "current");
 
-      // Mark as visited
       visited.add(current);
       order.push(current);
       setTraversalOrder([...order]);
 
       await updateNodeState(current, "visited");
 
-      // Add neighbors to stack (in reverse order for consistent traversal)
       const node = currentGraph.find((n) => n.id === current)!;
       const unvisitedNeighbors = node.neighbors
         .filter((neighbor) => !visited.has(neighbor))
@@ -382,12 +401,15 @@ export default function GraphTraversal() {
       for (const neighbor of unvisitedNeighbors) {
         if (!visited.has(neighbor)) {
           stack.push(neighbor);
+          setDataStructureState([...stack]);
           await updateNodeState(neighbor, "visiting");
         }
       }
     }
 
     setIsTraversing(false);
+    setDataStructureState([]);
+    setDataStructureType(null);
   }, [startNode, resetGraph, currentGraph]);
 
   // Toggle theme function
@@ -413,18 +435,19 @@ export default function GraphTraversal() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-2">
-      <div className="max-w-6xl mx-auto space-y-2">
-        {/* <div className="text-center space-y-2">
+    <div className="h-screen bg-background p-2 flex flex-col">
+      <div className="max-w-8xl mx-auto space-y-1 flex-1 flex flex-col">
+        {/* Header */}
+        {/* <div className="text-center py-2">
           <div className="flex items-center justify-center gap-4">
-            <h1 className="text-4xl font-bold">
+            <h1 className="text-2xl font-bold">
               Graph Traversal Visualization
             </h1>
             <Button
               variant="outline"
               size="icon"
               onClick={toggleTheme}
-              className="ml-4 bg-transparent"
+              className="bg-transparent"
             >
               {isDarkMode ? (
                 <Sun className="h-4 w-4" />
@@ -433,12 +456,13 @@ export default function GraphTraversal() {
               )}
             </Button>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Interactive BFS and DFS algorithm demonstration
           </p>
         </div> */}
 
-        <Card>
+        {/* Graph Builder Card */}
+        <Card className="flex-shrink-0 p-1">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Graph Builder
@@ -469,7 +493,7 @@ export default function GraphTraversal() {
             <CardDescription>
               {isEditMode
                 ? connectionMode
-                  ? "Click nodes to connect them with edges"
+                  ? "Click nodes to connect/disconnect them"
                   : "Drag nodes to reposition them"
                 : "Create and save custom graphs"}
             </CardDescription>
@@ -551,19 +575,20 @@ export default function GraphTraversal() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-1 min-h-0">
           {/* Controls */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Controls</CardTitle>
-              <CardDescription>
+          <Card className="flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Controls</CardTitle>
+              <CardDescription className="text-xs">
                 Choose algorithm and starting node
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 flex-1">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Start Node:</label>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-1 flex-wrap">
                   {currentGraph.map((node) => (
                     <Button
                       key={node.id}
@@ -571,6 +596,7 @@ export default function GraphTraversal() {
                       size="sm"
                       onClick={() => setStartNode(node.id)}
                       disabled={isTraversing}
+                      className="text-xs px-2 py-1"
                     >
                       {node.id}
                     </Button>
@@ -582,7 +608,7 @@ export default function GraphTraversal() {
                 <Button
                   onClick={runBFS}
                   disabled={isTraversing}
-                  className="w-full"
+                  className="w-full text-xs py-2"
                   variant="default"
                 >
                   Run BFS (Breadth-First)
@@ -590,15 +616,23 @@ export default function GraphTraversal() {
                 <Button
                   onClick={runDFS}
                   disabled={isTraversing}
-                  className="w-full"
+                  className="w-full text-xs py-2"
                   variant="secondary"
                 >
                   Run DFS (Depth-First)
                 </Button>
                 <Button
+                  onClick={stopTraversal}
+                  disabled={!isTraversing}
+                  className="w-full text-xs py-2"
+                  variant="destructive"
+                >
+                  Stop Traversal
+                </Button>
+                <Button
                   onClick={resetGraph}
                   disabled={isTraversing}
-                  className="w-full bg-transparent"
+                  className="w-full text-xs py-2 bg-transparent"
                   variant="outline"
                 >
                   Reset Graph
@@ -607,22 +641,22 @@ export default function GraphTraversal() {
 
               {/* Legend */}
               <div className="space-y-2">
-                <h4 className="font-medium">Legend:</h4>
-                <div className="space-y-1 text-sm">
+                <h4 className="font-medium text-sm">Legend:</h4>
+                <div className="space-y-1 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-gray-200 border-2 border-gray-400 dark:bg-gray-700 dark:border-gray-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400 dark:bg-gray-700 dark:border-gray-500"></div>
                     <span>Unvisited</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-yellow-200 border-2 border-yellow-500 dark:bg-yellow-300 dark:border-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-200 border border-yellow-500 dark:bg-yellow-300 dark:border-yellow-400"></div>
                     <span>In Queue/Stack</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-blue-400 border-2 border-blue-600 dark:bg-blue-500 dark:border-blue-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-blue-400 border border-blue-600 dark:bg-blue-500 dark:border-blue-400"></div>
                     <span>Current</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-green-400 border-2 border-green-600 dark:bg-green-500 dark:border-green-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400 border border-green-600 dark:bg-green-500 dark:border-green-400"></div>
                     <span>Visited</span>
                   </div>
                 </div>
@@ -631,15 +665,17 @@ export default function GraphTraversal() {
           </Card>
 
           {/* Graph Visualization */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-2 flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 Graph Visualization
                 {currentAlgorithm && (
-                  <Badge variant="secondary">{currentAlgorithm}</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {currentAlgorithm}
+                  </Badge>
                 )}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 {isTraversing
                   ? "Traversal in progress..."
                   : isEditMode
@@ -649,20 +685,21 @@ export default function GraphTraversal() {
                   : "Click an algorithm to start"}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="relative">
+            <CardContent className="flex-1 flex flex-col">
+              <div className="relative flex-1 flex items-center justify-center">
                 <svg
                   ref={svgRef}
-                  width="400"
+                  width="600"
                   height="400"
                   className="border rounded-lg bg-white dark:bg-gray-900 cursor-crosshair"
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
                   onClick={handleSVGClick}
+                  viewBox="0 0 600 400"
                 >
                   <rect
-                    width="400"
+                    width="600"
                     height="400"
                     fill="transparent"
                     className="svg-background"
@@ -766,11 +803,15 @@ export default function GraphTraversal() {
 
               {/* Traversal Order */}
               {traversalOrder.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <h4 className="font-medium">Traversal Order:</h4>
-                  <div className="flex gap-2 flex-wrap">
+                <div className="mt-2 space-y-1">
+                  <h4 className="font-medium text-sm">Traversal Order:</h4>
+                  <div className="flex gap-1 flex-wrap">
                     {traversalOrder.map((nodeId, index) => (
-                      <Badge key={index} variant="outline">
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="text-xs px-1 py-0"
+                      >
                         {index + 1}. {nodeId}
                       </Badge>
                     ))}
@@ -779,15 +820,99 @@ export default function GraphTraversal() {
               )}
             </CardContent>
           </Card>
+
+          <Card className="flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">
+                {dataStructureType === "queue"
+                  ? "Queue State (BFS)"
+                  : dataStructureType === "stack"
+                  ? "Stack State (DFS)"
+                  : "Data Structure"}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {dataStructureType === "queue"
+                  ? "FIFO - First In, First Out"
+                  : dataStructureType === "stack"
+                  ? "LIFO - Last In, First Out"
+                  : "Shows queue/stack during traversal"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+              {dataStructureState.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium">
+                    {dataStructureType === "queue"
+                      ? "Front → Back"
+                      : "Top → Bottom"}
+                  </div>
+                  <div className="space-y-1">
+                    {dataStructureType === "queue" ? (
+                      // Queue visualization (horizontal)
+                      <div className="flex gap-1 flex-wrap">
+                        {dataStructureState.map((nodeId, index) => (
+                          <div
+                            key={index}
+                            className={`px-2 py-1 rounded text-xs font-medium border-2 ${
+                              index === 0
+                                ? "bg-blue-100 border-blue-400 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                : "bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            }`}
+                          >
+                            {nodeId}
+                            {index === 0 && (
+                              <span className="ml-1 text-xs">←next</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      // Stack visualization (vertical)
+                      <div className="space-y-1">
+                        {[...dataStructureState]
+                          .reverse()
+                          .map((nodeId, index) => (
+                            <div
+                              key={index}
+                              className={`px-2 py-1 rounded text-xs font-medium border-2 ${
+                                index === 0
+                                  ? "bg-red-100 border-red-400 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                  : "bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                              }`}
+                            >
+                              {nodeId}
+                              {index === 0 && (
+                                <span className="ml-1 text-xs">←top</span>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Size: {dataStructureState.length}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground text-center py-4">
+                  {isTraversing
+                    ? "Empty"
+                    : "Run an algorithm to see data structure state"}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Algorithm Explanation */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-shrink-0">
           <Card>
-            <CardHeader>
-              <CardTitle>Breadth-First Search (BFS)</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">
+                Breadth-First Search (BFS)
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-1 text-xs">
               <p>
                 <strong>Data Structure:</strong> Queue (FIFO)
               </p>
@@ -805,10 +930,12 @@ export default function GraphTraversal() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Depth-First Search (DFS)</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">
+                Depth-First Search (DFS)
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-1 text-xs">
               <p>
                 <strong>Data Structure:</strong> Stack (LIFO)
               </p>
