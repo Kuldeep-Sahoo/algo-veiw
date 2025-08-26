@@ -9,6 +9,10 @@
     }
   ],
   "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmitOnError": false,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

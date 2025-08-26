@@ -59,8 +59,8 @@ export default function GraphTraversal() {
     "BFS" | "DFS" | null
   >(null);
   const [startNode, setStartNode] = useState<string>("A");
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  // const [isDarkMode, setIsDarkMode] = useState(true);
+const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [currentGraph, setCurrentGraph] = useState<Node[]>(SAMPLE_GRAPH);
   const [currentEdges, setCurrentEdges] = useState<Edge[]>(EDGES);
@@ -412,11 +412,11 @@ export default function GraphTraversal() {
     setDataStructureType(null);
   }, [startNode, resetGraph, currentGraph]);
 
-  // Toggle theme function
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
+  // // Toggle theme function
+  // const toggleTheme = () => {
+  //   setIsDarkMode(!isDarkMode);
+  //   document.documentElement.classList.toggle("dark");
+  // };
 
   // Get node color based on state
   const getNodeColor = (state: NodeState) => {
